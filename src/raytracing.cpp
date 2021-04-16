@@ -1,5 +1,5 @@
 #include <mpi.h>
-#include <stdlib.h>
+//#include <stdlib.h>
 #include "coupling.h"
 #include "intrinsic_depth.h"
 
@@ -9,26 +9,28 @@
 //#include "../../proto.h" // this is solely for dtime_system ?
 //}
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <limits>
 #include <iomanip>
 
-#include <iostream>
 #include "rt_prototypes.h"
 #include "raytrace_helpers.h"
 
 #include <cstring>
+#include <math.h>
 
 // calc heating to this optical depth
 #define HEAT_DEPTH 0.5
 
 
 
-// fully global objects (with extern in cpp_prototypes.h)
+// fully global objects (with extern in rt_prototypes.h)
 
 std::vector<int>** lol;
 const unsigned int maxlolsize = 1000000;
 //const int maxlolsize = 1000000;
+
+int NTask,ThisTask;
 
 // global objects for this file
 
@@ -59,6 +61,9 @@ void setup_raytracing() {
     lol = new std::vector<int>*[maxlolsize];
 
     setup_agn_kernel();
+    
+    MPI_Comm_size(MPI_COMM_WORLD, &NTask); 
+    MPI_Comm_rank(MPI_COMM_WORLD, &ThisTask); 
 }
 
 
@@ -82,7 +87,7 @@ void Raytracer::build_tree() {
 
 
 
-    for ( i=0 ; i<NumPart ; i++ ) {
+    for ( i=0 ; i<localN() ; i++ ) {
         //std::cout << ThisTask << " " << P[i].ID << " " << position(i)[2] << " " << P[i].NumNgb << std::endl;
 //         position(i)[2]*=1.e-5;
 //         smoothing(i) = 2.e-5;
@@ -109,7 +114,7 @@ void Raytracer::build_tree() {
 
     // build tree of lists of particles for hitting smoothing lengths
     tree.reset(new absorbtree(rmin,size));
-    for(i = 0; i < NumPart; i++) {
+    for(i = 0; i < localN(); i++) {
         if( isGas(i) && isAlive(i) && isDusty(i) ) {
             tree->head_addP(i,position(i),smoothing(i));
         }
@@ -121,7 +126,7 @@ int Raytracer::packParticles(struct Pos_Type MyPos[], int localIndex[]) {
 
     int localNActive = 0;
 //     int in_centre = 0;
-    for ( i=0 ; i<NumPart ; i++ ) {
+    for ( i=0 ; i<localN() ; i++ ) {
         //if( isGas(i) && isAlive(i) && TimeBinActive[P[i].TimeBin] && isDusty(i)) {
 
 #ifdef SOTON_AGN_DOUBLESTART
@@ -264,7 +269,7 @@ double Raytracer::one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],
     double d12_norm2 = get_norm2(rPart);
     double d12_norm = sqrt(d12_norm2);
 
-    memset(alreadyDone, 0, sizeof(bool)*N_gas );
+    memset(alreadyDone, 0, sizeof(bool)*allGasN() );
     
     double depth = 0.;
 //#ifdef INTRINSIC_DEPTH
@@ -274,7 +279,8 @@ double Raytracer::one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],
 //#endif
 
     if ( lolsize>maxlolsize ) {
-        endrun(8675309);
+        exit(0);
+//        endrun(8675309);
     }
 
     if ( !agn_at_origin ) {
@@ -376,18 +382,18 @@ void Raytracer::agn_optical_depths(double* r_agn, double *depths, bool agn_at_or
     
     // MPI sharing
     int numpartlist[NTask], numpartdisplacements[NTask];
-    struct Pos_Type *AllPos = new struct Pos_Type[allGasN()]; // all *active* particles to be updated
-    struct Pos_Type MyPos[N_gas]; // local *active* particles to have heating etc updated
-    double *AGN_alltau = new double[allGasN()];
+    struct Pos_Type *AllPos = new struct Pos_Type[allN()]; // all *active* particles to be updated
+    struct Pos_Type MyPos[allGasN()]; // local *active* particles to have heating etc updated
+    double *AGN_alltau = new double[allN()];
 #ifdef SOTON_DUST_DUST_HEATING    
-    bool alreadyDone[allGasN()];
+    bool alreadyDone[allN()];
 #else
-    bool alreadyDone[N_gas];
+    bool alreadyDone[allGasN()];
 #endif
 
-    double *local_AGN_alltau = new double[allGasN()]; // could be made smaller and more efficient
+    double *local_AGN_alltau = new double[allN()]; // could be made smaller and more efficient
     int localOffset;
-    int localIndex[N_gas];
+    int localIndex[allGasN()];
 
     // timing
     double tstart,tend,t1,t0,tdiffray,tdiffcomm,tdifftree,tdiffwait,tdiffbeam;
@@ -512,7 +518,7 @@ void Raytracer::agn_optical_depths(double* r_agn, double *depths, bool agn_at_or
 //     std::ofstream f;
 //     f.open("depth_dump"+std::to_string(ThisTask)+".dat");
 
-    for(i = 0; i < NumPart; i++) {
+    for(i = 0; i < localN(); i++) {
 //        if( isGas(i) && isAlive(i) && TimeBinActive[P[i].TimeBin]  && isDusty(i)) {
 #ifdef SOTON_AGN_DOUBLESTART
         if( isGas(i) && isAlive(i) && ( TimeBinActive[P[i].TimeBin] || All.NumCurrentTiStep<=1)) {
@@ -533,11 +539,6 @@ void Raytracer::agn_optical_depths(double* r_agn, double *depths, bool agn_at_or
 
     t1 = system_time();
     tdiffray = dtime_system(t0,t1)-tdiffbeam-tdiffcomm-tdiffwait;
-
-    CPU_Step[CPU_SOTONAGNRAY] += tdiffray;
-    CPU_Step[CPU_SOTONAGNBEAM] += tdiffbeam;
-    CPU_Step[CPU_SOTONAGNCOMM] += tdiffcomm;
-    CPU_Step[CPU_SOTONAGNWAIT] += tdiffwait;
 
      #ifdef BENCHMARK
          exit(0);

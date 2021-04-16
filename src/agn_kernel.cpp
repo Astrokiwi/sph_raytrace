@@ -1,10 +1,10 @@
 #include "rt_prototypes.h"
 #include <vector>
-#include <math.h>
-#include <iostream>
-#include <stdlib.h>
+//#include <stdlib.h>
 
 #include "coupling.h"
+#include <math.h>
+#include <iostream>
 
 //#include "../../allvars.h"
 //#include "../../proto.h"
