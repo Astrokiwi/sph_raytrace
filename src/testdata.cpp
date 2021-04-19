@@ -17,13 +17,16 @@
 #include <cmath>
 #include <iostream>
 #include <random>
+#include <memory>
 
 // globals, from testdata.h
 //struct TestData *testpositions;
 //int Nlocal,Ntot;
-ArrayParticlePositionCoupler *particlePositionCoupler = new ArrayParticlePositionCoupler();
+//ArrayParticlePositionCoupler *particlePositionCoupler = new ArrayParticlePositionCoupler();
 
-void generate_test_data(int N) {
+std::shared_ptr<ArrayParticlePositionCoupler> generate_test_data(int N) {
+    
+    std::shared_ptr<ArrayParticlePositionCoupler> particlePositionCoupler(new ArrayParticlePositionCoupler());
     
     int NTask,ThisTask;
     
@@ -57,10 +60,12 @@ void generate_test_data(int N) {
         particlePositionCoupler->testpositions[ip].Pos[2]*=0.01;
     }
     
+    return particlePositionCoupler;
+    
 //    std::cout << ThisTask << " " << ix << " " << iy << " " << iz << " " << nside << std::endl;
 }
 
-void dump_positions() {
+void dump_positions(std::shared_ptr<ArrayParticlePositionCoupler> particlePositionCoupler) {
     int NTask,ThisTask;
     
     MPI_Comm_size(MPI_COMM_WORLD, &NTask); 

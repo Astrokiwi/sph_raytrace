@@ -15,29 +15,49 @@
 #ifndef COUPLING_H
 #define COUPLING_H
 
-double *position(int i);
+class ParticlePositionCoupler {
+public:
+    virtual double *position(int i) {};
+    virtual double mass(int i) {};
+    virtual double smoothing(int i) {};
+    virtual double opacity(int i) {};
+    virtual bool isDusty(int i) {};
+    virtual bool isGas(int i) {};
+    virtual bool isActive(int i) {};
+    virtual bool isAlive(int i) {};
+    virtual long long allN() {};
+    virtual long long localN() {};
+    virtual long long allGasN() {};
+};
 
-double mass(int i);
+struct TestData {
+    double Pos[3];
+    double OpticalDepth;
+};
 
-double smoothing(int i);
+class ArrayParticlePositionCoupler: public ParticlePositionCoupler {
+public:
+    struct TestData *testpositions;
 
-double opacity(int i);
+    int Nlocal,Ntot;
 
-bool isDusty(int i);
+    double *position(int i) override;
+    double mass(int i) override;
+    double smoothing(int i) override;
+    double opacity(int i) override;
+    bool isDusty(int i) override;
+    bool isGas(int i) override;
+    bool isActive(int i) override;
+    bool isAlive(int i) override;
+    long long allN() override;
+    long long localN() override;
+    long long allGasN() override;
+    
+};
 
-bool isGas(int i);
-
-bool isActive(int i);
-
-bool isAlive(int i);
+//extern ArrayParticlePositionCoupler *particlePositionCoupler;
 
 double opticalDepthCutoff();
-
-long long allN();
-
-long long localN();
-
-long long allGasN();
 
 double kernel_wk(double r,double h);
 

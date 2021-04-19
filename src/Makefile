@@ -7,7 +7,7 @@ CXX      =  mpicxx
 
 #OPTIMIZE =  -O2 -Wall -std=c++11 -flto -funroll-loops  -march=native
 #OPTIMIZE =  -pg -O2 -Wall -std=c++11 -flto -funroll-loops  -march=native
-OPTIMIZE =  -std=c++11 -flto
+OPTIMIZE =  -pg -std=c++11 -flto
 MPICHLIB =  -L/usr/lib64/openmpi/lib
 
 LIBS   = -g $(MPICHLIB) 

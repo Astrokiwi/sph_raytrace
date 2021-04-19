@@ -14,6 +14,7 @@
 #include <iomanip>
 
 #include "rt_prototypes.h"
+#include "raytracing.h"
 #include "raytrace_helpers.h"
 
 #include <cstring>
@@ -34,7 +35,7 @@ int NTask,ThisTask;
 
 // global objects for this file
 
-AGN_Kernel *agn_kernel;
+//AGN_Kernel *agn_kernel;
 
 #ifdef BENCHMARK
 int n_interactions;
@@ -42,34 +43,29 @@ int n_interactions;
 
 // struct types for mpi etc
 
-struct Pos_Type {
-    double Pos[3];
-};
-
-
-// prototypes for *local* functions
-void setup_agn_kernel();
-
-/*! setup AGN kernel
-*/
-void setup_agn_kernel() {
-    agn_kernel = new AGN_Kernel();
-    agn_kernel->calc_depth_optical_table(HEAT_DEPTH,mass(0),-9.,0.,90); // assumption here is that mass is constant
-}
-
 void setup_raytracing() {
     lol = new std::vector<int>*[maxlolsize];
-
-    setup_agn_kernel();
     
     MPI_Comm_size(MPI_COMM_WORLD, &NTask); 
     MPI_Comm_rank(MPI_COMM_WORLD, &ThisTask); 
 }
 
 
+/*! setup AGN kernel
+*/
+void Raytracer::setup_agn_kernel() {
+    this->agn_kernel = new AGN_Kernel();
+    this->agn_kernel->calc_depth_optical_table(HEAT_DEPTH,this->particles->mass(0),-9.,0.,90); // assumption here is that mass is constant
+}
+
 // std::shared_ptr<absorbtree>
 
-/* Builds tree, based on global distribution of particles.
+Raytracer::Raytracer(std::shared_ptr<ParticlePositionCoupler> particles) {
+    this->particles = particles;
+    this->setup_agn_kernel();
+}
+
+/* Builds tree, based on local distribution of particles.
 */
 void Raytracer::build_tree() {
 
@@ -87,17 +83,17 @@ void Raytracer::build_tree() {
 
 
 
-    for ( i=0 ; i<localN() ; i++ ) {
-        //std::cout << ThisTask << " " << P[i].ID << " " << position(i)[2] << " " << P[i].NumNgb << std::endl;
-//         position(i)[2]*=1.e-5;
-//         smoothing(i) = 2.e-5;
-        if( isGas(i) && isAlive(i) ) {
+    for ( i=0 ; i<this->particles->localN() ; i++ ) {
+        //std::cout << ThisTask << " " << P[i].ID << " " << this->particles->position(i)[2] << " " << P[i].NumNgb << std::endl;
+//         this->particles->position(i)[2]*=1.e-5;
+//         this->particles->smoothing(i) = 2.e-5;
+        if( this->particles->isGas(i) && this->particles->isAlive(i) ) {
             for ( ic=0 ; ic<3 ; ic++ ) {
-                if ( position(i)[ic]<rmin[ic] ) {
-                    rmin[ic] = position(i)[ic];
+                if ( this->particles->position(i)[ic]<rmin[ic] ) {
+                    rmin[ic] = this->particles->position(i)[ic];
                 }
-                if ( position(i)[ic]>rmax[ic] ) {
-                    rmax[ic] = position(i)[ic];
+                if ( this->particles->position(i)[ic]>rmax[ic] ) {
+                    rmax[ic] = this->particles->position(i)[ic];
                 }
             }
         }
@@ -114,9 +110,9 @@ void Raytracer::build_tree() {
 
     // build tree of lists of particles for hitting smoothing lengths
     tree.reset(new absorbtree(rmin,size));
-    for(i = 0; i < localN(); i++) {
-        if( isGas(i) && isAlive(i) && isDusty(i) ) {
-            tree->head_addP(i,position(i),smoothing(i));
+    for(i = 0; i < this->particles->localN(); i++) {
+        if( this->particles->isGas(i) && this->particles->isAlive(i) && this->particles->isDusty(i) ) {
+            tree->head_addP(i,this->particles->position(i),this->particles->smoothing(i));
         }
     }
 }
@@ -126,49 +122,49 @@ int Raytracer::packParticles(struct Pos_Type MyPos[], int localIndex[]) {
 
     int localNActive = 0;
 //     int in_centre = 0;
-    for ( i=0 ; i<localN() ; i++ ) {
-        //if( isGas(i) && isAlive(i) && TimeBinActive[P[i].TimeBin] && isDusty(i)) {
+    for ( i=0 ; i<this->particles->localN() ; i++ ) {
+        //if( this->particles->isGas(i) && this->particles->isAlive(i) && TimeBinActive[P[i].TimeBin] && this->particles->isDusty(i)) {
 
 #ifdef SOTON_AGN_DOUBLESTART
-        if( isGas(i) && isAlive(i) && ( isActive(i) || All.NumCurrentTiStep<=1)) {
+        if( this->particles->isGas(i) && this->particles->isAlive(i) && ( this->particles->isActive(i) || All.NumCurrentTiStep<=1)) {
 #else
-        if( isGas(i) && isAlive(i) && isActive(i) ) {
+        if( this->particles->isGas(i) && this->particles->isAlive(i) && this->particles->isActive(i) ) {
 #endif
 
-//         if( isGas(i) && isAlive(i) && TimeBinActive[P[i].TimeBin] && P[i].ID==2 ) { // TESTING ONE PARTICLE - DELETE
+//         if( this->particles->isGas(i) && this->particles->isAlive(i) && TimeBinActive[P[i].TimeBin] && P[i].ID==2 ) { // TESTING ONE PARTICLE - DELETE
             // Calculate position to calculate absorption to
             // This is some optical depth into the gas particle
             // If the particle has a low enough density that it's fairly
             // optically thin, then we just calculate heating in the centre
-            double skin_rad = agn_kernel->skin_rad(smoothing(i),opacity(i));
+            double skin_rad = this->agn_kernel->skin_rad(this->particles->smoothing(i),this->particles->opacity(i));
             double rad = 0.;
             for ( ic=0 ; ic<3 ; ic++ ) {
-                rad+=square(position(i)[ic]);
-//                 std::cout << ic << " " << position(i)[ic] << std::endl;
+                rad+=square(this->particles->position(i)[ic]);
+//                 std::cout << ic << " " << this->particles->position(i)[ic] << std::endl;
             }
             rad = sqrt(rad);
             
 
             if ( skin_rad>0. ) {
 
-    //             std::cout << ThisTask << " " << i << " " << smoothing(i)*1.e5 << " " << skin_rad*1.e5 << " " << skin_rad/smoothing(i) << " ";
+    //             std::cout << ThisTask << " " << i << " " << this->particles->smoothing(i)*1.e5 << " " << skin_rad*1.e5 << " " << skin_rad/this->particles->smoothing(i) << " ";
                 if ( skin_rad<rad ) {
         
                     for ( ic=0 ; ic<3 ; ic++ ) {
-                        MyPos[localNActive].Pos[ic]=position(i)[ic]*(1.-skin_rad/rad);
-        //                 std::cout << position(i)[ic]*1.e5 << " " << position(i)[ic]*(1.-skin_rad/rad)*1.e5 << " ";
+                        MyPos[localNActive].Pos[ic]=this->particles->position(i)[ic]*(1.-skin_rad/rad);
+        //                 std::cout << this->particles->position(i)[ic]*1.e5 << " " << this->particles->position(i)[ic]*(1.-skin_rad/rad)*1.e5 << " ";
                     }
                 } else {
                     for ( ic=0 ; ic<3 ; ic++ ) {
                         MyPos[localNActive].Pos[ic]=0.;
 //                         in_centre++;
-        //                 std::cout << position(i)[ic]*1.e5 << " " << position(i)[ic]*(1.-skin_rad/rad)*1.e5 << " ";
+        //                 std::cout << this->particles->position(i)[ic]*1.e5 << " " << this->particles->position(i)[ic]*(1.-skin_rad/rad)*1.e5 << " ";
                     }
                 }
             } else {
                 for ( ic=0 ; ic<3 ; ic++ ) {
-                    MyPos[localNActive].Pos[ic]=position(i)[ic];
-        //                 std::cout << position(i)[ic]*1.e5 << " " << position(i)[ic]*(1.-skin_rad/rad)*1.e5 << " ";
+                    MyPos[localNActive].Pos[ic]=this->particles->position(i)[ic];
+        //                 std::cout << this->particles->position(i)[ic]*1.e5 << " " << this->particles->position(i)[ic]*(1.-skin_rad/rad)*1.e5 << " ";
                 }
             }
 
@@ -269,7 +265,7 @@ double Raytracer::one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],
     double d12_norm2 = get_norm2(rPart);
     double d12_norm = sqrt(d12_norm2);
 
-    memset(alreadyDone, 0, sizeof(bool)*allGasN() );
+    memset(alreadyDone, 0, sizeof(bool)*this->particles->allGasN() );
     
     double depth = 0.;
 //#ifdef INTRINSIC_DEPTH
@@ -310,14 +306,14 @@ double Raytracer::one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],
             alreadyDone[kg] = true;
             
             if ( agn_at_origin ) {
-                rAbsorb = &(position(kg)[0]);
+                rAbsorb = &(this->particles->position(kg)[0]);
             } else {
                 for ( int ii=0 ; ii<3 ; ii++ ) {
-                    rAbsorb[ii] = position(kg)[ii]-r_agn[ii];
+                    rAbsorb[ii] = this->particles->position(kg)[ii]-r_agn[ii];
                 }
             }
                 
-            int bet = between_particle_agn(rPart,rAbsorb,smoothing(kg),d12_norm);
+            int bet = between_particle_agn(rPart,rAbsorb,this->particles->smoothing(kg),d12_norm);
             if ( bet==0 ) continue;
 
             #ifdef BENCHMARK
@@ -325,7 +321,7 @@ double Raytracer::one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],
             #endif
 
             double d2int = intersect_agn_d2_nonorm(rPart,rAbsorb)/d12_norm2;
-            double h2 = square(smoothing(kg));
+            double h2 = square(this->particles->smoothing(kg));
 
 
             // within line of sight
@@ -335,7 +331,7 @@ double Raytracer::one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],
             
             if ( bet==1 ) {
                 //extincting particle is fully between the end points, can use simper method
-                depth+=mass(kg)*agn_kernel->flat_w2(d2int,h2)*opacity(kg);
+                depth+=this->particles->mass(kg)*this->agn_kernel->flat_w2(d2int,h2)*this->particles->opacity(kg);
             } else {
             // calculate line of sight
                 double z3=0.;
@@ -348,14 +344,14 @@ double Raytracer::one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],
 
                 z3/=d12_norm;
             
-                source_overlap = z3/smoothing(kg);
+                source_overlap = z3/this->particles->smoothing(kg);
                 if ( source_overlap>1. ) source_overlap=1.;
-                target_overlap = (d12_norm-z3)/smoothing(kg);
+                target_overlap = (d12_norm-z3)/this->particles->smoothing(kg);
                 if ( target_overlap>1. ) target_overlap=1.;
 
-                double weight_add = agn_kernel->half_flat_w2_truncated(d2int,h2,source_overlap)+agn_kernel->half_flat_w2_truncated(d2int,h2,target_overlap);
+                double weight_add = this->agn_kernel->half_flat_w2_truncated(d2int,h2,source_overlap)+this->agn_kernel->half_flat_w2_truncated(d2int,h2,target_overlap);
                 if ( weight_add>0. ) {
-                    depth+=mass(kg)*weight_add*opacity(kg);
+                    depth+=this->particles->mass(kg)*weight_add*this->particles->opacity(kg);
                 }
             }
 
@@ -382,18 +378,18 @@ void Raytracer::agn_optical_depths(double* r_agn, double *depths, bool agn_at_or
     
     // MPI sharing
     int numpartlist[NTask], numpartdisplacements[NTask];
-    struct Pos_Type *AllPos = new struct Pos_Type[allN()]; // all *active* particles to be updated
-    struct Pos_Type MyPos[allGasN()]; // local *active* particles to have heating etc updated
-    double *AGN_alltau = new double[allN()];
+    struct Pos_Type *AllPos = new struct Pos_Type[this->particles->allN()]; // all *active* particles to be updated
+    struct Pos_Type MyPos[this->particles->allGasN()]; // local *active* particles to have heating etc updated
+    double *AGN_alltau = new double[this->particles->allN()];
 #ifdef SOTON_DUST_DUST_HEATING    
-    bool alreadyDone[allN()];
+    bool alreadyDone[this->particles->allN()];
 #else
-    bool alreadyDone[allGasN()];
+    bool alreadyDone[this->particles->allGasN()];
 #endif
 
-    double *local_AGN_alltau = new double[allN()]; // could be made smaller and more efficient
+    double *local_AGN_alltau = new double[this->particles->allN()]; // could be made smaller and more efficient
     int localOffset;
-    int localIndex[allGasN()];
+    int localIndex[this->particles->allGasN()];
 
     // timing
     double tstart,tend,t1,t0,tdiffray,tdiffcomm,tdifftree,tdiffwait,tdiffbeam;
@@ -518,12 +514,12 @@ void Raytracer::agn_optical_depths(double* r_agn, double *depths, bool agn_at_or
 //     std::ofstream f;
 //     f.open("depth_dump"+std::to_string(ThisTask)+".dat");
 
-    for(i = 0; i < localN(); i++) {
-//        if( isGas(i) && isAlive(i) && TimeBinActive[P[i].TimeBin]  && isDusty(i)) {
+    for(i = 0; i < this->particles->localN(); i++) {
+//        if( this->particles->isGas(i) && this->particles->isAlive(i) && TimeBinActive[P[i].TimeBin]  && this->particles->isDusty(i)) {
 #ifdef SOTON_AGN_DOUBLESTART
-        if( isGas(i) && isAlive(i) && ( TimeBinActive[P[i].TimeBin] || All.NumCurrentTiStep<=1)) {
+        if( this->particles->isGas(i) && this->particles->isAlive(i) && ( TimeBinActive[P[i].TimeBin] || All.NumCurrentTiStep<=1)) {
 #else
-        if( isGas(i) && isAlive(i) && isActive(i) ) {
+        if( this->particles->isGas(i) && this->particles->isAlive(i) && this->particles->isActive(i) ) {
 #endif
             
             depths[i] = AGN_alltau[jp+localOffset];

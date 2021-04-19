@@ -16,6 +16,7 @@
 #include "rt_prototypes.h"
 #include "testdata.h"
 #include "coupling.h"
+#include "raytracing.h"
 
 using namespace std;
 
@@ -28,22 +29,22 @@ int main(int argc, char** argv) {
 
     setup_raytracing();
     
-    generate_test_data(200);
+    std::shared_ptr<ArrayParticlePositionCoupler> p = generate_test_data(200);
     
     
-    std::unique_ptr<Raytracer> raytracer(new Raytracer());
+    std::unique_ptr<Raytracer> raytracer(new Raytracer(p));
     raytracer->build_tree();
 
-    double *AGN_localtau = new double[particlePositionCoupler->localN()];
+    double *AGN_localtau = new double[p->localN()];
     double r_agn[3] = {0,0,0};
     raytracer->agn_optical_depths(r_agn,AGN_localtau,true);
 
-    for ( int ii=0 ; ii<particlePositionCoupler->localN() ; ii++ ) {
-        particlePositionCoupler->testpositions[ii].OpticalDepth = AGN_localtau[ii];
+    for ( int ii=0 ; ii<p->localN() ; ii++ ) {
+        p->testpositions[ii].OpticalDepth = AGN_localtau[ii];
     }
     
     MPI_Barrier(MPI_COMM_WORLD);
-    dump_positions();
+    dump_positions(p);
 
     
     MPI_Barrier(MPI_COMM_WORLD);

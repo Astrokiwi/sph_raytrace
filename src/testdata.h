@@ -13,6 +13,9 @@
 
 #ifndef TESTDATA_H
 #define TESTDATA_H
+
+#include <memory>
+#include "coupling.h"
 //
 //struct TestData {
 //    double Pos[3];
@@ -23,7 +26,7 @@
 //
 //extern int Nlocal,Ntot;
 
-void generate_test_data(int N);
-void dump_positions();
+std::shared_ptr<ArrayParticlePositionCoupler> generate_test_data(int N);
+void dump_positions(std::shared_ptr<ArrayParticlePositionCoupler> particlePositionCoupler);
 
 #endif /* TESTDATA_H */

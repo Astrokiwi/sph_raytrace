@@ -148,30 +148,6 @@ class AGN_Kernel {
 };
 
 
-
-class Raytracer {
-    public:
-        void build_tree();
-        void agn_optical_depths(double* r_agn, double *depths, bool agn_at_origin);
-
-
-    private:
-
-        double one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],int jg, int localOffset,int localNActive,int localIndex[]
-                                ,double *tdiffbeam);
-        double one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],int jg, int localOffset,int localNActive,int localIndex[]
-                                ,double *tdiffbeam, double r_agn[]);
-        double one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],int jg, int localOffset,int localNActive,int localIndex[]
-                                ,double *tdiffbeam, double r_agn[],bool agn_at_origin);
-
-        int packParticles(struct Pos_Type MyPos[], int localIndex[]);
-        int gatherParticles(struct Pos_Type AllPos[], struct Pos_Type MyPos[], int numpartlist[], int numpartdisplacements[], int localNActive, double *tdiffwait, double *tdiffcomm);
-
-
-        std::shared_ptr<absorbtree> tree = nullptr;
-    
-};
-
 // separate out dust-dust heating into another file
 void do_dust_dust_heating(bool alreadyDone[], int localOffset, int localNActive, int localIndex[], int nActiveTot,  double *tdiffwait,double *tdifftree,double *tdiffray);
 
@@ -199,7 +175,7 @@ void table_heat(int i, double *values);
 // Raytracing prototypes
 // std::shared_ptr<absorbtree> build_tree();
 // void agn_optical_depths(double* r_agn, double *depths, std::shared_ptr<absorbtree> tree, bool agn_at_origin);
-void setup_raytracing();
+//void setup_raytracing();
 //static inline double intersect_d2_nonorm(double *r1,double *r2,double *r3);
 
 // global objects
