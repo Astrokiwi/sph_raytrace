@@ -25,15 +25,12 @@
 
 
 
-// fully global objects (with extern in rt_prototypes.h)
+// global objects for this file
 
-std::vector<int>** lol;
-const unsigned int maxlolsize = 1000000;
 //const int maxlolsize = 1000000;
 
-int NTask,ThisTask;
+//int NTask,ThisTask;
 
-// global objects for this file
 
 //AGN_Kernel *agn_kernel;
 
@@ -43,18 +40,11 @@ int n_interactions;
 
 // struct types for mpi etc
 
-void setup_raytracing() {
-    lol = new std::vector<int>*[maxlolsize];
-    
-    MPI_Comm_size(MPI_COMM_WORLD, &NTask); 
-    MPI_Comm_rank(MPI_COMM_WORLD, &ThisTask); 
-}
-
-
 /*! setup AGN kernel
 */
 void Raytracer::setup_agn_kernel() {
-    this->agn_kernel = new AGN_Kernel();
+    this->agn_kernel.reset(new AGN_Kernel());
+
     this->agn_kernel->calc_depth_optical_table(HEAT_DEPTH,this->particles->mass(0),-9.,0.,90); // assumption here is that mass is constant
 }
 
@@ -62,6 +52,7 @@ void Raytracer::setup_agn_kernel() {
 
 Raytracer::Raytracer(std::shared_ptr<ParticlePositionCoupler> particles) {
     this->particles = particles;
+    lol = new std::vector<int>*[maxlolsize]; // TODO: destructor
     this->setup_agn_kernel();
 }
 
@@ -182,6 +173,10 @@ int Raytracer::gatherParticles(struct Pos_Type AllPos[], struct Pos_Type MyPos[]
     int i;
     int maxSize;
     double tstart,tend;
+
+    int NTask,ThisTask;    
+    MPI_Comm_size(MPI_COMM_WORLD, &NTask); 
+    MPI_Comm_rank(MPI_COMM_WORLD, &ThisTask); 
     
 
     // Gather numbers of particles
@@ -243,6 +238,9 @@ double Raytracer::one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],
     bool target_is_local = ( jg>=localOffset && jg<localOffset+localNActive );
 
     double *rAbsorb;
+    int NTask,ThisTask;    
+    MPI_Comm_size(MPI_COMM_WORLD, &NTask); 
+    MPI_Comm_rank(MPI_COMM_WORLD, &ThisTask); 
 
 
     unsigned int lolsize = 0;
@@ -375,6 +373,9 @@ void Raytracer::agn_optical_depths(double* r_agn, double *depths, bool agn_at_or
     // counters
     int i;
     int jp;
+    int NTask,ThisTask;    
+    MPI_Comm_size(MPI_COMM_WORLD, &NTask); 
+    MPI_Comm_rank(MPI_COMM_WORLD, &ThisTask); 
     
     // MPI sharing
     int numpartlist[NTask], numpartdisplacements[NTask];

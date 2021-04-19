@@ -26,11 +26,8 @@ using namespace std;
 int main(int argc, char** argv) {
 
     MPI_Init(&argc, &argv);
-
-    setup_raytracing();
     
     std::shared_ptr<ArrayParticlePositionCoupler> p = generate_test_data(200);
-    
     
     std::unique_ptr<Raytracer> raytracer(new Raytracer(p));
     raytracer->build_tree();

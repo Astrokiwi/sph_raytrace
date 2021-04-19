@@ -42,11 +42,12 @@ class Raytracer {
 
         void setup_agn_kernel();
         
-        AGN_Kernel *agn_kernel;
-
-        
+        std::shared_ptr<AGN_Kernel> agn_kernel = nullptr;
         std::shared_ptr<absorbtree> tree = nullptr;
-        std::shared_ptr<ParticlePositionCoupler> particles;
+        std::shared_ptr<ParticlePositionCoupler> particles = nullptr;
+
+        std::vector<int>** lol;
+        const unsigned int maxlolsize = 1000000;
     
 };
 
