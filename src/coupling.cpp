@@ -16,15 +16,15 @@ double *ArrayParticlePositionCoupler::position(int i) {
 }
 
 double ArrayParticlePositionCoupler::mass(int i) {
-    return 1.;
+    return constant_mass;
 }
 
 double ArrayParticlePositionCoupler::smoothing(int i) {
-    return 0.1;
+    return this->testpositions[i].smoothing;
 }
 
 double ArrayParticlePositionCoupler::opacity(int i) {
-    return 1.e-6;
+    return this->testpositions[i].opacity;
 }
 
 bool ArrayParticlePositionCoupler::isDusty(int i) {

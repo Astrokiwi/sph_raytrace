@@ -11,15 +11,15 @@
  * Created on 19 April 2021, 14:29
  */
 
-struct Pos_Type {
-    double Pos[3];
-};
-
 #ifndef RAYTRACING_H
 #define RAYTRACING_H
 
 #include <memory>
 #include "coupling.h"
+
+struct Pos_Type {
+    double Pos[3];
+};
 
 class Raytracer {
     public:

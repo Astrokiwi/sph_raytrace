@@ -27,20 +27,21 @@ int main(int argc, char** argv) {
 
     MPI_Init(&argc, &argv);
     
-    std::shared_ptr<ArrayParticlePositionCoupler> p = generate_test_data(200);
+    std::shared_ptr<ArrayParticlePositionCoupler> p = generate_test_data();
     
-    std::unique_ptr<Raytracer> raytracer(new Raytracer(p));
-    raytracer->build_tree();
+//    std::unique_ptr<Raytracer> raytracer(new Raytracer(p));
+    Raytracer raytracer(p);
+    raytracer.build_tree();
 
     double *AGN_localtau = new double[p->localN()];
     double r_agn[3] = {0,0,0};
-    raytracer->agn_optical_depths(r_agn,AGN_localtau,true);
+    
+    raytracer.agn_optical_depths(r_agn,AGN_localtau,true);
 
     for ( int ii=0 ; ii<p->localN() ; ii++ ) {
         p->testpositions[ii].OpticalDepth = AGN_localtau[ii];
     }
     
-    MPI_Barrier(MPI_COMM_WORLD);
     dump_positions(p);
 
     

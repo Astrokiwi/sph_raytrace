@@ -26,7 +26,7 @@
 //
 //extern int Nlocal,Ntot;
 
-std::shared_ptr<ArrayParticlePositionCoupler> generate_test_data(int N);
+std::shared_ptr<ArrayParticlePositionCoupler> generate_test_data();
 void dump_positions(std::shared_ptr<ArrayParticlePositionCoupler> particlePositionCoupler);
 
 #endif /* TESTDATA_H */

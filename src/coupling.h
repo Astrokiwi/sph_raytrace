@@ -15,6 +15,8 @@
 #ifndef COUPLING_H
 #define COUPLING_H
 
+#include <vector>
+
 class ParticlePositionCoupler {
 public:
     virtual double *position(int i) {};
@@ -33,13 +35,19 @@ public:
 struct TestData {
     double Pos[3];
     double OpticalDepth;
+    double smoothing;
+    double opacity;
+    double mass;
+    int proc;
 };
 
 class ArrayParticlePositionCoupler: public ParticlePositionCoupler {
 public:
-    struct TestData *testpositions;
+    std::vector<struct TestData> testpositions;
 
     int Nlocal,Ntot;
+    
+    double constant_mass = 1.;
 
     double *position(int i) override;
     double mass(int i) override;
