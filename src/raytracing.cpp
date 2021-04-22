@@ -80,11 +80,13 @@ void Raytracer::build_tree() {
 //         this->particles->smoothing(i) = 2.e-5;
         if( this->particles->isGas(i) && this->particles->isAlive(i) ) {
             for ( ic=0 ; ic<3 ; ic++ ) {
-                if ( this->particles->position(i)[ic]<rmin[ic] ) {
-                    rmin[ic] = this->particles->position(i)[ic];
+                double xmin = this->particles->position(i)[ic]-this->particles->smoothing(i);
+                double xmax = this->particles->position(i)[ic]+this->particles->smoothing(i);
+                if ( xmin<rmin[ic] ) {
+                    rmin[ic] = xmin;
                 }
-                if ( this->particles->position(i)[ic]>rmax[ic] ) {
-                    rmax[ic] = this->particles->position(i)[ic];
+                if ( xmax>rmax[ic] ) {
+                    rmax[ic] = xmax;
                 }
             }
         }
@@ -106,6 +108,7 @@ void Raytracer::build_tree() {
             tree->head_addP(i,this->particles->position(i),this->particles->smoothing(i));
         }
     }
+    
 }
 
 int Raytracer::packParticles(struct Pos_Type MyPos[], int localIndex[]) {
@@ -284,7 +287,7 @@ double Raytracer::one_agn_tree_ray(struct Pos_Type AllPos[], bool alreadyDone[],
     for ( unsigned int ilist=0 ; ilist<lolsize ; ilist++ ) {
         std::vector<int > *hitp_set = lol[ilist];
         unsigned int hs = hitp_set->size() ;
-
+        
         for ( unsigned int ii=0 ; ii<hs ; ii++ ) {
             int kg = (*hitp_set)[ii];
 
@@ -399,11 +402,19 @@ void Raytracer::agn_optical_depths(double* r_agn, double *depths, bool agn_at_or
     tdiffwait = 0.;
     tdiffbeam = 0.;
     t0 = system_time();
-
+    
     //tree->matrix_dump(ThisTask);
     //std::cout << tree->check(10) << std::endl;
 
-    //tree->dump();
+//    for ( i=0 ; i<NTask ; i++ ) {
+//        MPI_Barrier(MPI_COMM_WORLD);
+//        if ( ThisTask==i ) {
+//            std::cout << "TREE" << ThisTask << std::endl;
+//            tree->dump();
+//            std::cout << std::flush;
+//        }
+//        MPI_Barrier(MPI_COMM_WORLD);
+//    }
 
 
     // Communicate points to everyone
