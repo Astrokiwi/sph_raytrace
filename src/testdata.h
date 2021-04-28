@@ -16,6 +16,8 @@
 
 #include <memory>
 #include "coupling.h"
+#include "ArrayParticlePositionCoupler.h"
+
 //
 //struct TestData {
 //    double Pos[3];

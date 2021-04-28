@@ -11,7 +11,6 @@
  * Created on 16 April 2021, 10:09
  */
 
-#include "coupling.h"
 #include "testdata.h"
 #include "rt_prototypes.h"
 #include "raytracing.h"
