@@ -1,6 +1,4 @@
-EXEC   = RAYTEST
-
-OBJS  =   coupling.o testdata.o absorbtree.o agn_kernel.o raytracing.o main.o
+TEST_OBJS  =   coupling.o testdata.o absorbtree.o agn_kernel.o raytracing.o main.o
 
 CC	 =  mpicc
 CXX      =  mpicxx
@@ -12,12 +10,14 @@ MPICHLIB =  -L/usr/lib64/openmpi/lib
 
 LIBS   = -g $(MPICHLIB) 
 
-$(EXEC): $(OBJS)
-	$(CXX) $(OPTIMIZE) $(OBJS) $(LIBS) -o ../$(EXEC)
+EXEC = RAYTEST
 
-$(OBJS): %.o: %.cpp
+raytest: $(TEST_OBJS)
+	$(CXX) $(OPTIMIZE) $(TEST_OBJS) $(LIBS) -o ../$(EXEC)
+
+$(TEST_OBJS): %.o: %.cpp
 	$(CXX) $(OPTIMIZE) -c $< -o $@
 
 
 clean:
-	rm -f $(OBJS) $(FOBJS) ../$(EXEC) *.o
+	rm -f $(TEST_OBJS) ../$(EXEC) *.o

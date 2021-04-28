@@ -29,4 +29,6 @@
 std::shared_ptr<ArrayParticlePositionCoupler> generate_test_data();
 void dump_positions(std::shared_ptr<ArrayParticlePositionCoupler> particlePositionCoupler);
 
+void run_test();
+
 #endif /* TESTDATA_H */
