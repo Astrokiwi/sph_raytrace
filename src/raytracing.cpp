@@ -3,8 +3,6 @@
 #include "coupling.h"
 #include "intrinsic_depth.h"
 
-#define BENCHMARK
-
 //#include "../../allvars.h"
 //extern "C"
 //{ 
